@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+    <div class="dashboard-container">
+        <header class="header">
+            <h2>Admin Dashboard</h2>
+            <button id="logout-btn" class="logout-btn">Logout</button>
+        </header>
+
+        <section class="user-management">
+            <h3>Manage Users</h3>
+            <table id="user-table">
+                <thead>
+                    <tr>
+                        <th>Patient Number</th>
+                        <th>Name</th>
+                        <th>Birth Date</th>
+                        <th>Gender</th>
+                        <th>Contact Info</th>
+                        <th>Vaccination Details</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- User data will be dynamically loaded here -->
+                </tbody>
+            </table>
+
+            <!-- Add New User Form -->
+            <button id="add-user-btn" class="add-btn">Add New User</button>
+            <div id="add-user-form" class="add-form">
+                <h3>Add User</h3>
+                <form id="user-form">
+                    <label for="first-name">First Name</label>
+                    <input type="text" id="first-name" name="first_name" required>
+
+                    <label for="last-name">Last Name</label>
+                    <input type="text" id="last-name" name="last_name" required>
+
+                    <label for="birth-date">Birth Date</label>
+                    <input type="date" id="birth-date" name="birth_date" required>
+
+                    <label for="gender">Gender</label>
+                    <select id="gender" name="gender" required>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                    </select>
+
+                    <label for="contact-info">Contact Info</label>
+                    <input type="email" id="contact-info" name="contact_info" required>
+
+                    <label for="vaccination-name">Vaccination Name</label>
+                    <input type="text" id="vaccination-name" name="vaccination_name" required>
+
+                    <label for="manufacturer">Manufacturer</label>
+                    <input type="text" id="manufacturer" name="manufacturer" required>
+
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description" required></textarea>
+
+                    <button type="submit" class="save-btn">Save</button>
+                </form>
+            </div>
+
+            <div id="edit-form-container" style="display: none;">
+    <form id="edit-form">
+        <label>Patient Number:</label>
+        <input type="text" id="edit-patient-number" readonly><br>
+
+        <label>First Name:</label>
+        <input type="text" id="edit-first-name"><br>
+
+        <label>Last Name:</label>
+        <input type="text" id="edit-last-name"><br>
+
+        <label>Birth Date:</label>
+        <input type="date" id="edit-birth-date"><br>
+
+        <label>Gender:</label>
+        <select id="edit-gender">
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+        </select><br>
+
+        <label>Contact Info:</label>
+        <input type="text" id="edit-contact-info"><br>
+
+        <label>Vaccination Name:</label>
+        <input type="text" id="edit-vaccination-name"><br>
+
+        <label for="edit-vaccination-status">Vaccination Status</label>
+        <select id="edit-vaccination-status">
+            <option value="Completed">Completed</option>
+            <option value="Pending">Pending</option>
+        </select>
+
+        <label>Manufacturer:</label>
+        <input type="text" id="edit-manufacturer"><br>
+
+        <label>Description:</label>
+        <textarea id="edit-description"></textarea><br>
+
+        <button type="submit">Save Changes</button>
+        <button type="button" onclick="document.querySelector('#edit-form-container').style.display='none';">Cancel</button>
+    </form>
+</div>
+
+        </section>
+    </div>
+
+    <script>
+document.addEventListener("DOMContentLoaded", () => {
+    const userTableBody = document.querySelector("#user-table tbody");
+    const addUserForm = document.querySelector("#add-user-form");
+    const addUserButton = document.querySelector("#add-user-btn");
+    const userForm = document.querySelector("#user-form");
+    const logoutButton = document.getElementById("logout-btn");
+
+    // Fetch and display user data on load
+    const fetchUserData = async () => {
+        try {
+            const response = await fetch("http://127.0.0.1:8000/api/retrieveindividuals/");
+            const data = await response.json();
+
+            userTableBody.innerHTML = ""; // Clear existing rows
+            data.individuals.forEach(individual => {
+                const row = document.createElement("tr");
+
+                row.innerHTML = `
+                    <td>${individual.patient_number}</td>
+                    <td>${individual.first_name} ${individual.last_name}</td>
+                    <td>${individual.birth_date}</td>
+                    <td>${individual.gender}</td>
+                    <td>${individual.contact_info}</td>
+                    <td>
+                        <ul>
+                            ${individual.vaccination_history.map(history => `
+                                <li>
+                                    <strong>${history.vaccination_type.vaccination_name}</strong>
+                                    <p>${history.vaccination_date} - ${history.vaccination_status}</p>
+                                    <p>${history.vaccination_type.manufacturer}</p>
+                                    <p>${history.vaccination_type.description}</p>
+                                </li>
+                            `).join("")}
+                        </ul>
+                    </td>
+                    <td>
+                        <button class="edit-btn" data-id="${individual.patient_number}">Edit</button>
+                        <button class="delete-btn" data-id="${individual.patient_number}">Delete</button>
+                    </td>
+                `;
+
+                userTableBody.appendChild(row);
+            });
+
+            attachEventListeners();
+        } catch (error) {
+            console.error("Error fetching data:", error);
+        }
+    };
+
+    // Add event listeners for edit and delete buttons
+    const attachEventListeners = () => {
+        document.querySelectorAll(".edit-btn").forEach(button => {
+            button.addEventListener("click", handleEdit);
+        });
+
+        document.querySelectorAll(".delete-btn").forEach(button => {
+            button.addEventListener("click", handleDelete);
+        });
+    };
+
+    // Handle edit action
+  // Handle Edit button click
+  const handleEdit = async (e) => {
+    const patientNumber = e.target.dataset.id;
+
+    try {
+        // Fetch the individual patient data from the API
+        const response = await fetch(`http://127.0.0.1:8000/api/individual/${patientNumber}/`);
+        if (!response.ok) throw new Error("Failed to fetch patient data.");
+        
+        const individual = await response.json();
+
+        // Populate form fields with fetched data
+        document.querySelector("#edit-patient-number").value = individual.patient_number;
+        document.querySelector("#edit-first-name").value = individual.first_name;
+        document.querySelector("#edit-last-name").value = individual.last_name;
+        document.querySelector("#edit-birth-date").value = individual.birth_date;
+        document.querySelector("#edit-gender").value = individual.gender;
+        document.querySelector("#edit-contact-info").value = individual.contact_info;
+        document.querySelector("#edit-vaccination-name").value =
+            individual.vaccination_history[0]?.vaccination_type.vaccination_name || "";
+        document.querySelector("#edit-vaccination-status").value =
+            individual.vaccination_history[0]?.vaccination_status || "Pending";
+        document.querySelector("#edit-manufacturer").value =
+            individual.vaccination_history[0]?.vaccination_type.manufacturer || "";
+        document.querySelector("#edit-description").value =
+            individual.vaccination_history[0]?.vaccination_type.description || "";
+
+        document.querySelector("#edit-form-container").style.display = "block";
+
+        // Handle form submission for updating data
+        document.querySelector("#edit-form").onsubmit = async (event) => {
+            event.preventDefault();
+
+            const updatedData = {
+                individual: {
+                    first_name: document.querySelector("#edit-first-name").value,
+                    last_name: document.querySelector("#edit-last-name").value,
+                    birth_date: document.querySelector("#edit-birth-date").value,
+                    gender: document.querySelector("#edit-gender").value,
+                    contact_info: document.querySelector("#edit-contact-info").value,
+                },
+                vaccination_history: [
+                    {
+                        history_id: individual.vaccination_history[0].history_id,
+                        vaccination_status: document.querySelector("#edit-vaccination-status").value, // Get the selected value
+                        vaccination_date: "2024-12-01", // Update vaccination date if necessary
+                        vaccination_type: {
+                            vaccination_type_id: individual.vaccination_history[0].vaccination_type.vaccination_type_id,
+                            vaccination_name: document.querySelector("#edit-vaccination-name").value,
+                            manufacturer: document.querySelector("#edit-manufacturer").value,
+                            description: document.querySelector("#edit-description").value,
+                        },
+                    },
+                ],
+            };
+
+            // Use the correct endpoint for updating data (PUT request)
+            const updateResponse = await fetch(`http://127.0.0.1:8000/api/admin/update/${patientNumber}/`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(updatedData),
+            });
+
+            if (!updateResponse.ok) throw new Error("Failed to update patient data.");
+
+            alert("Patient details updated successfully.");
+            document.querySelector("#edit-form-container").style.display = "none";
+            fetchUserData(); // Refresh the table data
+        };
+    } catch (error) {
+        console.error("Error editing patient:", error);
+    }
+};
+
+    // Handle delete action
+
+    const handleDelete = async (e) => {
+        const patientNumber = e.target.dataset.id;
+
+            if (confirm("Are you sure you want to delete this record?")) {
+                try {
+                    await fetch(`http://127.0.0.1:8000/api/admin/delete/${patientNumber}/`, {
+                        method: "DELETE",
+                    });
+                    alert("Record deleted successfully.");
+                    fetchUserData(); // Refresh data
+                } catch (error) {
+                    console.error("Error deleting patient:", error);
+                }
+            }
+        };
+
+    // Show add user form
+    addUserButton.addEventListener("click", () => {
+        addUserForm.style.display = addUserForm.style.display === "block" ? "none" : "block";
+    });
+
+    // Handle add user form submission
+    userForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const formData = new FormData(userForm);
+        const data = {
+            individual: {
+                first_name: formData.get("first_name"),
+                last_name: formData.get("last_name"),
+                birth_date: formData.get("birth_date"),
+                gender: formData.get("gender"),
+                contact_info: formData.get("contact_info"),
+            },
+            vaccination: {
+                vaccination_name: formData.get("vaccination_name"),
+                manufacturer: formData.get("manufacturer"),
+                description: formData.get("description"),
+            },
+        };
+
+        try {
+            await fetch("http://127.0.0.1:8000/api/individual_with_vaccination/", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+            });
+            alert("User added successfully.");
+            addUserForm.style.display = "none";
+            fetchUserData(); // Refresh table
+        } catch (error) {
+            console.error("Error adding user:", error);
+        }
+    });
+
+    // Handle logout
+    logoutButton.addEventListener("click", () => {
+        window.location.href = "login";
+    });
+
+    fetchUserData();
+});
+
+
+    </script>
+</body>
+</html>

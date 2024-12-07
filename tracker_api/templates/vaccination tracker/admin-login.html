@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+    <div class="login-container">
+        <h2>Admin Login</h2>
+
+        <!-- Login Form -->
+        <form id="login-form">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" placeholder="Enter username" required>
+
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" placeholder="Enter password" required>
+
+            <button type="submit" class="login-btn">Login</button>
+        </form>
+
+        <!-- Signup Link -->
+        <div class="signup-link">
+            <p>Don't have an account? <a href="{% url 'signup' %}">Sign up</a></p>
+        </div>
+
+        <!-- Error Message (optional) -->
+        <div id="error-message" style="display: none; color: red;">
+            <p>Invalid username or password. Please try again.</p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('login-form').addEventListener('submit', async function(event) {
+            event.preventDefault(); // Prevent the form from submitting the traditional way
+            
+            // Get the values from the form
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            // Send login details to the API
+            const response = await fetch('http://127.0.0.1:8000/api/admin/login/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    username: username,
+                    password: password
+                })
+            });
+
+            const result = await response.json();
+            
+            // Handle response
+            if (response.ok) {
+                // Successful login - redirect to the admin dashboard or handle accordingly
+                window.location.href = "admin_dashboard"; 
+            } else {
+                // Login failed - display an error message
+                document.getElementById('error-message').style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

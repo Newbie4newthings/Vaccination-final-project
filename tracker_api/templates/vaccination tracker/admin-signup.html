@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Sign-Up</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+    <div class="login-container">
+        <h2>Create Admin Account</h2>
+
+        <!-- Sign-Up Form -->
+        <form id="signup-form">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" placeholder="Enter username" required>
+
+            <label for="first_name">First Name</label>
+            <input type="text" id="first_name" name="first_name" placeholder="Enter first name" required>
+
+            <label for="last_name">Last Name</label>
+            <input type="text" id="last_name" name="last_name" placeholder="Enter last name" required>
+
+            <label for="contact_info">Contact Info</label>
+            <input type="text" id="contact_info" name="contact_info" placeholder="Enter contact info" required>
+
+            <label for="role">Role</label>
+            <input type="text" id="role" name="role" placeholder="Enter role" required>
+
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" placeholder="Enter email" required>
+
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" placeholder="Enter password" required>
+
+            <label for="confirm-password">Confirm Password</label>
+            <input type="password" id="confirm-password" name="confirm-password" placeholder="Confirm password" required>
+
+            <button type="submit" class="login-btn">Sign Up</button>
+        </form>
+
+        <!-- Link to login page -->
+        <div class="signup-link">
+            <p>Already have an account? <a href="{% url 'login' %}">Login</a></p>
+        </div>
+        
+        <!-- Error Message (optional) -->
+        <div id="error-message" style="display: none; color: red;">
+            <p>There was an issue creating your account. Please try again.</p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('signup-form').addEventListener('submit', async function(event) {
+            event.preventDefault(); // Prevent the form from submitting the traditional way
+            
+            // Get the values from the form
+            const username = document.getElementById('username').value;
+            const first_name = document.getElementById('first_name').value;
+            const last_name = document.getElementById('last_name').value;
+            const contact_info = document.getElementById('contact_info').value;
+            const role = document.getElementById('role').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+
+            // Check if password and confirm password match
+            if (password !== confirmPassword) {
+                alert("Passwords do not match. Please try again.");
+                return;
+            }
+
+            // Send sign-up details to the API
+            const response = await fetch('http://127.0.0.1:8000/api/admin/register/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    username: username,
+                    first_name: first_name,
+                    last_name: last_name,
+                    contact_info: contact_info,
+                    role: role,
+                    email: email,
+                    password: password
+                })
+            });
+
+            const result = await response.json();
+            
+            // Handle response
+            if (response.ok) {
+                // Successfully signed up - redirect to login page or dashboard
+                window.location.href = 'login';
+            } else {
+                // Sign-up failed - display an error message
+                document.getElementById('error-message').style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
